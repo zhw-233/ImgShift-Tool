@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Build output
+build/
+dist/
+*.egg-info/
+
+# CMake / C++ / Qt
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+*.user
+*.pro.user
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
