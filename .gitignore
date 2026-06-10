@@ -26,3 +26,10 @@ cmake-build-*/
 *.log
 tmp/
 temp/
+
+# test
+tests/
+assets/
+
+#docs
+docs/
