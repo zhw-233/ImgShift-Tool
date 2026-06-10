@@ -53,14 +53,14 @@ def build_parser() :
         "-f",
         "--format",
         required=True,
-        help="目标格式，支持： "+" , ".join(supported_formats)
+        help="目标格式，支持： "+" , ".join(sorted(supported_formats))
     )
     trans_parser.add_argument(
         "-q",
         "--quality",
         type=int,
-        default=75,
-        help="图片质量( JPG / JPEG )有损压缩，0-100，默认75"
+        default=95,
+        help="JPG / JPEG / WEBP 压缩质量，0-100（100图像质量最高），默认95"
     )
     zip_parser=subparsers.add_parser(
         "zip",
@@ -101,7 +101,7 @@ def build_parser() :
         "--quality",
         type=int,
         default=75,
-        help="JPG / JPEG / WEBP 压缩质量，0-100（100质量最高），默认75"
+        help="JPG / JPEG / WEBP 压缩质量，0-100（100图像质量最高），默认75"
     )
     zip_parser.add_argument(
         "-level",
@@ -151,11 +151,11 @@ def run_zip(args) :
     if not out_path.is_dir() :
         print(f"错误：输出路径不存在：{out_path}")
         return 1
-    format=Path(in_path).suffix[1:].upper()
-    if format not in supported_formats :
-        print(f"错误：{format} 格式暂不支持")
+    image_format=Path(in_path).suffix[1:].upper()
+    if image_format not in supported_formats :
+        print(f"错误：{image_format} 格式暂不支持")
         return 1
-    if format in {"JPG","JPEG"} :
+    if image_format in {"JPG","JPEG"} :
         if not 0<=args.quality<=100 :
             print("错误：图片质量值超出限制")
             return 1
@@ -166,7 +166,7 @@ def run_zip(args) :
             args.quality,
             args.progressive
         )
-    elif format=="PNG" :
+    elif image_format=="PNG" :
         if not 0<=args.level<=9 :
             print("错误：图片压缩值超出限制")
             return 1
@@ -176,7 +176,7 @@ def run_zip(args) :
             out_path,
             args.level
         )
-    elif format=="WEBP" :
+    elif image_format=="WEBP" :
         if not 0<=args.quality<=100 :
             print("错误：图片质量值超出限制")
             return 1
