@@ -29,3 +29,6 @@ temp/
 
 # test
 tests/
+
+# vscode
+.vscode/
