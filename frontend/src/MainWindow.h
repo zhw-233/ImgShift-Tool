@@ -62,4 +62,5 @@ private :
     void setupHomePage();
     void setupTransPage();
     void setupZipPage();
+    QString getAppDir();
 };

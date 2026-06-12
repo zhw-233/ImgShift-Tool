@@ -12,6 +12,10 @@
 #include<QCheckBox>
 #include<QMessageBox>
 #include<QStackedWidget>
+#include<QCoreApplication>
+#ifdef Q_OS_WIN
+#include<windows.h>
+#endif
 // #include<QDebug>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -20,6 +24,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     /////   process
     process=new QProcess(this);
+
+    #ifdef Q_OS_WIN
+    process->setCreateProcessArgumentsModifier(
+        [](QProcess::CreateProcessArguments *args) {
+            args->flags |= CREATE_NO_WINDOW;
+        }
+    );
+    #endif
 
     stackedwidgets=new QStackedWidget(this);
 
@@ -427,17 +439,8 @@ void MainWindow::runTrans() {
     bool nofast=no_fastCheck->isChecked();
     bool progressive=transProgressiveCheck->isChecked();
 
-    QString language;
+    QString cliDir=getAppDir();
     QStringList args;
-
-    #ifdef Q_OS_WIN
-    language="py";
-    args<<"-3";
-    #else
-    language="python3";
-    #endif
-
-    args<<"backend/image_cli.py";
     args<<"trans";
     args<<transInputFile;
     args<<"-f"<<imgFormat;
@@ -446,7 +449,7 @@ void MainWindow::runTrans() {
     if(nofast) args<<"-no-fast";
     if(progressive) args<<"-progressive";
 
-    process->start(language,args);
+    process->start(cliDir,args);
 }
 
 void MainWindow::runZip() {
@@ -482,17 +485,8 @@ void MainWindow::runZip() {
     bool lossless=losslessCheck->isChecked();
     bool progressive=zipProgressiveCheck->isChecked();
 
-    QString language;
+    QString cliDir=getAppDir();
     QStringList args;
-
-    #ifdef Q_OS_WIN
-    language="py";
-    args<<"-3";
-    #else
-    language="python3";
-    #endif
-
-    args<<"backend/image_cli.py";
     args<<"zip";
     args<<zipInputFile;
     args<<"-o"<<zipOutputDir;
@@ -501,5 +495,14 @@ void MainWindow::runZip() {
     if(lossless) args<<"-lossless";
     if(progressive) args<<"-progressive";
 
-    process->start(language,args);
+    process->start(cliDir,args);
+}
+
+QString MainWindow::getAppDir() {
+    QDir appDir(QCoreApplication::applicationDirPath());
+    #ifdef Q_OS_WIN
+    return appDir.filePath("image_cli.exe");
+    #else
+    return appDir.filePath("image_cli");
+    #endif
 }
