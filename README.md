@@ -4,13 +4,14 @@ ImgShift-Tool 一个简易图片处理工具。
 
 是zhw同学的C语言期末大作业。
 
-## 功能
+## 功能（ 期望 ）
 
 - 图片格式转换
 - 图片压缩
 - 批量处理图片
 - 命令行操作
 - Qt/C++ 桌面界面
+- 支持更多格式（ .gif / .pdf …… ）
 
 ## 当前状态
 
@@ -167,6 +168,14 @@ pyinstaller --clean --onefile --name image_cli --paths backend backend/image_cli
 ## 提示
 
 命令行指令默认值与桌面界面控件默认值可能不同，请以界面实际显示为准。
+
+由于缺失苹果的 `Developer ID Application` 证书，因此 macOS 需要在 APP 文件夹终端窗口执行：
+
+```bash
+xattr -dr com.apple.quarantine ImgShift-Tool.app
+```
+
+后才可运行
 
 ## 许可证
 
