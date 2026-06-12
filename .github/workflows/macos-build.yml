@@ -1,0 +1,87 @@
+name: macOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build macOS package
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build Python CLI
+        run: |
+          pyinstaller --clean --onefile --name image_cli --paths backend backend/image_cli.py
+
+      - name: Install Qt
+        run: |
+          brew install qt
+          echo "$(brew --prefix qt)/bin" >> "$GITHUB_PATH"
+
+      - name: Configure frontend
+        run: |
+          QT_PREFIX="$(brew --prefix qt)"
+          cmake -S frontend -B frontend/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+
+      - name: Build frontend
+        run: |
+          cmake --build frontend/build --config Release
+
+      - name: Prepare app bundle
+        run: |
+          mkdir -p release
+          cp -R frontend/build/ImgShift-Tool.app release/
+          cp dist/image_cli release/ImgShift-Tool.app/Contents/MacOS/image_cli
+          chmod +x release/ImgShift-Tool.app/Contents/MacOS/image_cli
+
+      - name: Deploy Qt runtime
+        run: |
+          QT_PREFIX="$(brew --prefix qt)"
+          macdeployqt release/ImgShift-Tool.app \
+            -libpath="$QT_PREFIX/lib" \
+            -libpath="$QT_PREFIX/Frameworks" \
+            -always-overwrite \
+            -no-codesign \
+            -verbose=2
+
+      - name: Remove unused optional Qt plugins
+        run: |
+          rm -f release/ImgShift-Tool.app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib
+          rm -f release/ImgShift-Tool.app/Contents/PlugIns/iconengines/libqsvgicon.dylib
+          rm -f release/ImgShift-Tool.app/Contents/PlugIns/imageformats/libqpdf.dylib
+
+      - name: Sign app bundle
+        run: |
+          xattr -cr release/ImgShift-Tool.app
+          codesign --force --deep --sign - release/ImgShift-Tool.app
+          codesign --verify --deep --strict --verbose=2 release/ImgShift-Tool.app
+
+      - name: Create zip
+        run: |
+          cd release
+          ditto -c -k --sequesterRsrc --keepParent ImgShift-Tool.app ../ImgShift-Tool-macos.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImgShift-Tool-macos
+          path: ImgShift-Tool-macos.zip

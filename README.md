@@ -22,14 +22,12 @@ ImgShift-Tool 一个简易图片处理工具。
 - Qt/C++ 桌面界面
 
 其余部分正在加紧赶工……
-封装也在赶工……
 
 ## 项目结构
 
 ```text
 backend/      Python 后端，负责命令行入口和图片处理逻辑
 frontend/     Qt/C++ 桌面应用
-scripts/      开发、构建和打包辅助脚本
 ```
 
 ## 安装依赖
@@ -86,7 +84,7 @@ python backend\image_cli.py zip -h
 python3 backend/image_cli.py trans 输入图片路径 -f 目标格式
 ```
 
-示例：将example.jpg转为png
+示例：将 `example.jpg` 转为 `png`
 
 ```bash
 python3 backend/image_cli.py trans tests/example.jpg -f png
@@ -140,17 +138,39 @@ JPG 格式文件统一以 JPEG 格式输出
 
 ### 项目构建
 
+#### 前端
 ```bash
 cmake -S frontend -B frontend/build
 cmake --build frontend/build
 ```
 
+#### 后端
+```bash
+pip install pyinstaller
+pyinstaller --clean --onefile --name image_cli --paths backend backend/image_cli.py
+```
+
+在后端生成可执行程序image_cli后，将其移动至：
+
+`macOS` ： `.app` 的 `ImgShift-Tool.app/Contents/MacOS/image_cli`
+
+`Windows` ： 前端的可执行文件同目录下即可
+
 ### 项目运行
 
-```bash
-./frontend/build/ImgShift-Tool
-```
+点击可执行程序即可
+
+## 打包说明
+
+项目提供 GitHub Actions 工作流，可在手动触发或推送 `v*` 标签时构建 macOS / Windows 桌面端压缩包。
+
+## 提示
+
+命令行指令默认值与桌面界面控件默认值可能不同，请以界面实际显示为准。
 
 ## 许可证
 
 本项目基于 MIT License 开源
+
+用到的组件 `Pillow` 、 `Qt` 各自遵循其对应的许可证。
+
