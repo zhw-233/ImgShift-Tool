@@ -1,5 +1,7 @@
 # ImgShift-Tool
 
+GitHub 项目地址：[ImgShift-Tool](https://github.com/zhw-233/ImgShift-Tool)
+
 ImgShift-Tool 一个简易图片处理工具。
 
 是zhw同学的C语言期末大作业。
