@@ -17,7 +17,7 @@ def build_parser() :
         "-v",
         "--version",
         action="version",
-        version="ImgShift-Tool v1.1.0",
+        version="ImgShift-Tool v1.2.0",
         help="查询版本"
     )
 
