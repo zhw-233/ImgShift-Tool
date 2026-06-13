@@ -14,15 +14,27 @@ qt_add_executable(ImgShift-Tool
     src/main.cpp
     src/MainWindow.h
     src/MainWindow.cpp
+    assets/icons.qrc
 )
 
 if(WIN32) 
+    target_sources(ImgShift-Tool PRIVATE
+        assets/app.rc
+    )
     set_target_properties(ImgShift-Tool PROPERTIES
         WIN32_EXECUTABLE TRUE
     )
 elseif(APPLE)
+    set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/assets/app-icon.icns")
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
+    target_sources(ImgShift-Tool PRIVATE
+        ${APP_ICON_MACOS}
+    )
     set_target_properties(ImgShift-Tool PROPERTIES
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_ICON_FILE app-icon.icns
     )
 endif()
 

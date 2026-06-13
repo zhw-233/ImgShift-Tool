@@ -13,6 +13,7 @@
 #include<QMessageBox>
 #include<QStackedWidget>
 #include<QCoreApplication>
+#include <QIcon>
 #ifdef Q_OS_WIN
 #include<windows.h>
 #endif
@@ -21,6 +22,7 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("ImgShift-Tool");
     resize(600,400);
+    setWindowIcon(QIcon(":/icons/app-icon.png"));
 
     /////   process
     process=new QProcess(this);
