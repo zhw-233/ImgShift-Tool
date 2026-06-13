@@ -38,33 +38,43 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupHomePage();
     setupTransPage();
     setupZipPage();
+    setupGifMakerPage();
+    setupGifSpliterPage();
 
     stackedwidgets->addWidget(homePage);
     stackedwidgets->addWidget(transPage);
     stackedwidgets->addWidget(zipPage);
+    stackedwidgets->addWidget(gifMakerPage);
+    stackedwidgets->addWidget(gifSpliterPage);
 
     stackedwidgets->setCurrentWidget(homePage);
+
+    connect(process,&QProcess::readyReadStandardOutput,this,[this](){
+        pyOutput=QString::fromLocal8Bit(process->readAllStandardOutput());
+    });
+    connect(process,&QProcess::readyReadStandardError,this,[this](){
+        pyOutput=QString::fromLocal8Bit(process->readAllStandardError());
+    });
 
     connect(process,&QProcess::finished,this,[this](){
         zipRunButton->setEnabled(true);
         transRunButton->setEnabled(true);
-    });
-
-    connect(process,&QProcess::readyReadStandardOutput,this,[this](){
-        QString pyOutput=QString::fromLocal8Bit(process->readAllStandardOutput());
-        QMessageBox::information(
-            this,
-            "成功",
-            pyOutput
-        );
-    });
-    connect(process,&QProcess::readyReadStandardError,this,[this](){
-        QString pyOutput=QString::fromLocal8Bit(process->readAllStandardError());
-        QMessageBox::warning(
-            this,
-            "错误",
-            pyOutput
-        );
+        gifMakerRunButton->setEnabled(true);
+        gifSpliterRunButton->setEnabled(true);
+        if(process->exitCode()==0) {
+            QMessageBox::information(
+                this,
+                "成功",
+                pyOutput
+            );
+        }
+        else {
+            QMessageBox::warning(
+                this,
+                "错误",
+                pyOutput
+            );
+        }
     });
 
     /////   show
@@ -78,19 +88,33 @@ void MainWindow::setupHomePage() {
     auto *titleLabel=new QLabel("请选择模式",homePage);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setFixedHeight(40);
+
+    auto *line1=new QHBoxLayout;
     auto *transBottom=new QPushButton("格式转换",homePage);
     transBottom->setFixedHeight(100);
     auto *zipBottom=new QPushButton("图片压缩",homePage);
     zipBottom->setFixedHeight(100);
+    line1->addWidget(transBottom,1);
+    line1->addWidget(zipBottom,1);
+
+    auto *line2=new QHBoxLayout;
+    auto *gifMakerBottom=new QPushButton("GIF 生成",homePage);
+    gifMakerBottom->setFixedHeight(100);
+    auto *gifSpliterBottom=new QPushButton("GIF 拆分",homePage);
+    gifSpliterBottom->setFixedHeight(100);
+    line2->addWidget(gifMakerBottom,1);
+    line2->addWidget(gifSpliterBottom,1);
 
     layout->addStretch(1);
     layout->addWidget(titleLabel,1);
-    layout->addWidget(transBottom,1);
-    layout->addWidget(zipBottom,1);
+    layout->addLayout(line1);
+    layout->addLayout(line2);
     layout->addStretch(1);
 
     connect(transBottom,&QPushButton::clicked,this,&MainWindow::showTransPage);
     connect(zipBottom,&QPushButton::clicked,this,&MainWindow::showZipPage);
+    connect(gifMakerBottom,&QPushButton::clicked,this,&MainWindow::showGifMakerPage);
+    connect(gifSpliterBottom,&QPushButton::clicked,this,&MainWindow::showGifSpliterPage);
 }
 
 void MainWindow::setupTransPage() {
@@ -322,6 +346,130 @@ void MainWindow::setupZipPage() {
     connect(zipRunButton,&QPushButton::clicked,this,&MainWindow::runZip);
 }
 
+void MainWindow::setupGifMakerPage() {
+    gifMakerPage=new QWidget(this);
+    auto *layout=new QVBoxLayout(gifMakerPage);
+
+    /////   back
+    auto *backButton=new QPushButton("返回",gifMakerPage);
+    backButton->setFixedSize(60,32);
+
+    layout->addWidget(backButton,1);
+
+    connect(backButton,&QPushButton::clicked,this,&MainWindow::showHomePage);
+
+    /////   inputFile
+    auto inputLayout=new QHBoxLayout;
+
+    gifMakerInputDirLabel=new QLabel("请选择输入路径",gifMakerPage);
+    gifMakerInputDirLabel->setFixedHeight(32);
+
+    auto inputChooseButton=new QPushButton("选择路径",gifMakerPage);
+    inputChooseButton->setFixedSize(100,32);
+
+    inputLayout->addWidget(inputChooseButton,1);
+    inputLayout->addWidget(gifMakerInputDirLabel,1);
+
+    layout->addLayout(inputLayout);
+
+    connect(inputChooseButton,&QPushButton::clicked,this,&MainWindow::gifMakerChooseInputDir);
+
+    /////   outputDir
+    auto *outputLayout=new QHBoxLayout;
+
+    gifMakerOutputDirLabel=new QLabel("请选择输出路径",gifMakerPage);
+    gifMakerOutputDirLabel->setFixedHeight(32);
+
+    auto *outputChooseButton=new QPushButton("选择路径",gifMakerPage);
+    outputChooseButton->setFixedSize(100,32);
+
+    outputLayout->addWidget(outputChooseButton,1);
+    outputLayout->addWidget(gifMakerOutputDirLabel,1);
+
+    layout->addLayout(outputLayout);
+
+    connect(outputChooseButton,&QPushButton::clicked,this,&MainWindow::gifMakerChooseOutputDir);
+
+    /////   duration
+    auto *durationLayout=new QHBoxLayout;
+
+    auto *durationLabel=new QLabel("每帧时间间隔，单位毫秒，默认 300",gifMakerPage);
+    durationLabel->setFixedHeight(32);
+
+    durationSpin=new QSpinBox(gifMakerPage);
+    durationSpin->setFixedSize(300,32);
+    durationSpin->setRange(1,10000);
+    durationSpin->setValue(300);
+    durationSpin->setSingleStep(1);
+    durationSpin->setSuffix("ms");
+
+    durationLayout->addWidget(durationLabel,1);
+    durationLayout->addWidget(durationSpin,1);
+
+    layout->addLayout(durationLayout);
+
+    /////   runButton
+    gifMakerRunButton=new QPushButton("运行",gifMakerPage);
+    gifMakerRunButton->setFixedSize(100,32);
+
+    layout->addWidget(gifMakerRunButton,1);
+
+    connect(gifMakerRunButton,&QPushButton::clicked,this,&MainWindow::runGifMaker);
+}
+
+void MainWindow::setupGifSpliterPage() {
+    gifSpliterPage=new QWidget(this);
+    auto *layout=new QVBoxLayout(gifSpliterPage);
+
+    /////   back
+    auto *backButton=new QPushButton("返回",gifSpliterPage);
+    backButton->setFixedSize(60,32);
+
+    layout->addWidget(backButton,1);
+
+    connect(backButton,&QPushButton::clicked,this,&MainWindow::showHomePage);
+
+    /////   inputFile
+    auto inputLayout=new QHBoxLayout;
+
+    gifSpliterInputFileLabel=new QLabel("请选择输入路径",gifSpliterPage);
+    gifSpliterInputFileLabel->setFixedHeight(32);
+
+    auto inputChooseButton=new QPushButton("选择路径",gifSpliterPage);
+    inputChooseButton->setFixedSize(100,32);
+
+    inputLayout->addWidget(inputChooseButton,1);
+    inputLayout->addWidget(gifSpliterInputFileLabel,1);
+
+    layout->addLayout(inputLayout);
+
+    connect(inputChooseButton,&QPushButton::clicked,this,&MainWindow::gifSpliterChooseInputFile);
+
+    /////   outputDir
+    auto *outputLayout=new QHBoxLayout;
+
+    gifSpliterOutputDirLabel=new QLabel("请选择输出路径",gifSpliterPage);
+    gifSpliterOutputDirLabel->setFixedHeight(32);
+
+    auto *outputChooseButton=new QPushButton("选择路径",gifSpliterPage);
+    outputChooseButton->setFixedSize(100,32);
+
+    outputLayout->addWidget(outputChooseButton,1);
+    outputLayout->addWidget(gifSpliterOutputDirLabel,1);
+
+    layout->addLayout(outputLayout);
+
+    connect(outputChooseButton,&QPushButton::clicked,this,&MainWindow::gifSpliterChooseOutputDir);
+
+    /////   runButton
+    gifSpliterRunButton=new QPushButton("运行",gifSpliterPage);
+    gifSpliterRunButton->setFixedSize(100,32);
+
+    layout->addWidget(gifSpliterRunButton,1);
+
+    connect(gifSpliterRunButton,&QPushButton::clicked,this,&MainWindow::runGifSpliter);
+}
+
 void MainWindow::showHomePage() {
     stackedwidgets->setCurrentWidget(homePage);
 }
@@ -332,6 +480,14 @@ void MainWindow::showTransPage() {
 
 void MainWindow::showZipPage() {
     stackedwidgets->setCurrentWidget(zipPage);
+}
+
+void MainWindow::showGifMakerPage() {
+    stackedwidgets->setCurrentWidget(gifMakerPage);
+}
+
+void MainWindow::showGifSpliterPage() {
+    stackedwidgets->setCurrentWidget(gifSpliterPage);
 }
 
 void MainWindow::transChooseInputFile() {
@@ -370,6 +526,40 @@ void MainWindow::zipChooseInputFile() {
     }
 }
 
+void MainWindow::gifMakerChooseInputDir() {
+    gifMakerInputDir=QFileDialog::getExistingDirectory(
+        this,
+        "选择输入路径",
+        QString()
+    );
+    if(!gifMakerInputDir.isEmpty()) {
+        QDir dir(gifMakerInputDir);
+        gifMakerInputDirLabel->setText(dir.dirName());
+        gifMakerInputDirLabel->setToolTip(gifMakerInputDir);
+    }
+    else {
+        gifMakerInputDirLabel->setText("请选择输入路径");
+        gifMakerInputDirLabel->setToolTip(nullptr);
+    }
+}
+
+void MainWindow::gifSpliterChooseInputFile() {
+    gifSpliterInputFile=QFileDialog::getOpenFileName(
+        this,
+        "选择输入动图",
+        QString()
+    );
+    if(!gifSpliterInputFile.isEmpty()) {
+        QFileInfo fileInfo(gifSpliterInputFile);
+        gifSpliterInputFileLabel->setText(fileInfo.fileName());
+        gifSpliterInputFileLabel->setToolTip(gifSpliterInputFile);
+    }
+    else {
+        gifSpliterInputFileLabel->setText("请选择输入动图");
+        gifSpliterInputFileLabel->setToolTip(nullptr);
+    }
+}
+
 void MainWindow::transChooseOutputDir() {
     transOutputDir=QFileDialog::getExistingDirectory(
         this,
@@ -401,6 +591,40 @@ void MainWindow::zipChooseOutputDir() {
     else {
         zipOutputDirLabel->setText("请选择输出路径");
         zipOutputDirLabel->setToolTip(nullptr);
+    }
+}
+
+void MainWindow::gifMakerChooseOutputDir() {
+    gifMakerOutputDir=QFileDialog::getExistingDirectory(
+        this,
+        "选择输出路径",
+        QString()
+    );
+    if(!gifMakerOutputDir.isEmpty()) {
+        QDir dir(gifMakerOutputDir);
+        gifMakerOutputDirLabel->setText(dir.dirName());
+        gifMakerOutputDirLabel->setToolTip(gifMakerOutputDir);
+    }
+    else {
+        gifMakerOutputDirLabel->setText("请选择输出路径");
+        gifMakerOutputDirLabel->setToolTip(nullptr);
+    }
+}
+
+void MainWindow::gifSpliterChooseOutputDir() {
+    gifSpliterOutputDir=QFileDialog::getExistingDirectory(
+        this,
+        "选择输出路径",
+        QString()
+    );
+    if(!gifSpliterOutputDir.isEmpty()) {
+        QDir dir(gifSpliterOutputDir);
+        gifSpliterOutputDirLabel->setText(dir.dirName());
+        gifSpliterOutputDirLabel->setToolTip(gifSpliterOutputDir);
+    }
+    else {
+        gifSpliterOutputDirLabel->setText("请选择输出路径");
+        gifSpliterOutputDirLabel->setToolTip(nullptr);
     }
 }
 
@@ -449,6 +673,7 @@ void MainWindow::runTrans() {
     if(nofast) args<<"-no-fast";
     if(progressive) args<<"-progressive";
 
+    pyOutput.clear();
     process->start(cliDir,args);
 }
 
@@ -495,6 +720,86 @@ void MainWindow::runZip() {
     if(lossless) args<<"-lossless";
     if(progressive) args<<"-progressive";
 
+    pyOutput.clear();
+    process->start(cliDir,args);
+}
+
+void MainWindow::runGifMaker() {
+    if(gifMakerInputDir.isEmpty()) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "请选择输入路径"
+        );
+        return ;
+    }
+    if(gifMakerOutputDir.isEmpty()) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "请选择输出路径"
+        );
+        return ;
+    }
+    if(process->state()!=QProcess::NotRunning) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "当前已有任务正在运行"
+        );
+        return ;
+    }
+
+    gifMakerRunButton->setEnabled(false);
+
+    int duration=durationSpin->value();
+
+    QString cliDir=getAppDir();
+    QStringList args;
+    args<<"gifmake";
+    args<<gifMakerInputDir;
+    args<<"-o"<<gifMakerOutputDir;
+    args<<"-duration"<<QString::number(duration);
+
+    pyOutput.clear();
+    process->start(cliDir,args);
+}
+
+void MainWindow::runGifSpliter() {
+    if(gifSpliterInputFile.isEmpty()) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "请选择输入路径"
+        );
+        return ;
+    }
+    if(gifSpliterOutputDir.isEmpty()) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "请选择输出路径"
+        );
+        return ;
+    }
+    if(process->state()!=QProcess::NotRunning) {
+        QMessageBox::warning(
+            this,
+            "提示",
+            "当前已有任务正在运行"
+        );
+        return ;
+    }
+
+    gifSpliterRunButton->setEnabled(false);
+
+    QString cliDir=getAppDir();
+    QStringList args;
+    args<<"gifsplit";
+    args<<gifSpliterInputFile;
+    args<<"-o"<<gifSpliterOutputDir;
+
+    pyOutput.clear();
     process->start(cliDir,args);
 }
 

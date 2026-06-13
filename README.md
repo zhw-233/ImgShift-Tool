@@ -14,6 +14,7 @@ ImgShift-Tool 一个简易图片处理工具。
 - 命令行操作
 - Qt/C++ 桌面界面
 - 支持更多格式（ .gif / .pdf …… ）
+- 美化操作界面
 
 ## 当前状态
 
@@ -23,6 +24,7 @@ ImgShift-Tool 一个简易图片处理工具。
 - 图片压缩
 - 命令行功能
 - Qt/C++ 桌面界面
+- GIF 动图的生成与拆分
 
 其余部分正在加紧赶工……
 
@@ -38,7 +40,7 @@ frontend/     Qt/C++ 桌面应用
 ### 运行环境
 
 - Python 3.10 或更高版本
-- Qt6 6.2 或更高版本 包含 Widget 模块
+- Qt6 6.2 或更高版本 包含 Widgets 模块
 - C++20
 - CMake 3.16 或更高版本
 
@@ -54,8 +56,10 @@ pip install -r requirements.txt
 
 - `trans`: 转换图片格式
 - `zip`: 压缩图片
+- `gifmake`: 生成 GIF 动图
+- `gifsplit`: 拆分 GIF 动图
 
-支持的图片格式：
+转换与压缩支持的图片格式：
 
 ```text
 JPG / JPEG / PNG / WEBP
@@ -69,14 +73,15 @@ macOS / Linux
 python3 backend/image_cli.py -h
 python3 backend/image_cli.py trans -h
 python3 backend/image_cli.py zip -h
+python3 backend/image_cli.py gifmake -h
+python3 backend/image_cli.py gifsplit -h
 ```
 
-Windows
+### 查看工具版本
 
-```powershell
-python backend\image_cli.py -h
-python backend\image_cli.py trans -h
-python backend\image_cli.py zip -h
+```bash
+python3 backend/image_cli.py -v
+python3 backend/image_cli.py --version
 ```
 
 ### 转换图片格式
@@ -127,13 +132,48 @@ python3 backend/image_cli.py zip 输入图片路径
 - `-q` / `--quality`：JPG / JPEG / WEBP 压缩质量，0-100（100图像质量最高），默认75
 - `-lossless` / `--lossless`：WEBP 是否启用无损压缩，默认关闭
 
+### GIF 生成
+
+基本用法
+
+```bash
+python3 backend/image_cli.py gifmake 输入文件夹路径
+```
+
+- 支持用 JPG / JPEG / PNG / WEBP 图片生成 GIF
+- 图片文件名必须是数字，比如 1.png、2.png、3.jpg
+
+额外参数说明：
+
+- `-o` / `--output`：输出目录，默认输入目录，输出目录必须已经存在
+- `-duration` / `--duration`：每帧时间间隔，单位毫秒，默认 300ms
+
+### GIF 拆分
+
+基本用法
+
+```bash
+python3 backend/image_cli.py gifsplit 输入文件路径
+```
+
+- 输入必须为 GIF 格式动图
+- 输出为 PNG 图片
+
+额外参数说明：
+
+- `-o` / `--output`：输出目录，默认输入目录，输出目录必须已经存在
+
 ### 输出文件名规则
 
-JPG 格式文件统一以 JPEG 格式输出
+JPG 格式文件统一以 JPEG 编码保存
 
 执行 `trans` 部分会生成 `trans_...`
 
 执行 `zip` 部分会生成 `zip_...`
+
+执行 `gifmake` 部分会生成 `gifmaker_...`
+
+执行 `gifsplit` 部分会生成 `gifspliter_...`
 
 注意：会直接在输出目录下覆盖已存在的同文件名图片
 
@@ -165,7 +205,7 @@ pyinstaller --clean --onefile --name image_cli --paths backend backend/image_cli
 
 ## 打包说明
 
-项目提供 GitHub Actions 工作流，可在手动触发或推送 `v*` 标签时构建 macOS / Windows 桌面端压缩包。
+项目提供 GitHub Actions 工作流，可在手动触发时构建 macOS / Windows 桌面端压缩包。
 
 ## 提示
 

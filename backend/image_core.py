@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image,ImageSequence
 from pathlib import Path
 
 supported_formats={"JPG","JPEG","PNG","WEBP"}
@@ -54,4 +54,53 @@ def zip_webp(in_path,name,out_path,whether_lossless,target_quality) :
             lossless=whether_lossless,
             quality=target_quality
         )
+    return out_path
+
+def gifMaker(input_file,out_path,name,time=300) :
+    out_path=Path(out_path)/f"gifmaker_{Path(name).name}.gif"
+
+    tmp_files=[]
+    max_height=0
+    max_width=0
+
+    for file in input_file :
+        with Image.open(file) as im :
+            max_height=max(max_height,im.height)
+            max_width=max(max_width,im.width)
+            tmp_files.append(im.convert("RGBA").copy())
+
+    frames=[]
+    for file in tmp_files :
+        tmp=Image.new("RGBA",(max_width,max_height),(0,0,0,0))
+        tmp.paste(file,(0,0),file)
+        frames.append(tmp)
+    
+    first=frames[0]
+    rest=frames[1:]
+    first.save(
+        out_path,
+        format="GIF",
+        save_all=True,
+        append_images=rest,
+        duration=time,
+        loop=0,
+        disposal=2,
+        optimize=True
+    )
+
+    return out_path
+
+def gifSpliter(in_path,name,out_path) :
+    in_path=Path(in_path)/name
+    out_path=Path(out_path)
+
+    with Image.open(in_path) as im :
+        for index,img in enumerate(ImageSequence.Iterator(im),start=1) :
+            img_path=out_path/f"gifspliter_{Path(in_path).stem}_{index:03d}.png"
+            img.copy().save(
+                img_path,
+                format="PNG",
+                optimize=True
+            )
+
     return out_path

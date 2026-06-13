@@ -1,4 +1,4 @@
-from image_core import trans,supported_formats,zip_jpeg,zip_png,zip_webp
+from image_core import trans,supported_formats,zip_jpeg,zip_png,zip_webp,gifMaker,gifSpliter
 from pathlib import Path
 import argparse
 
@@ -13,7 +13,16 @@ def build_parser() :
         action="help",
         help="帮助"
     )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="ImgShift-Tool v1.1.0",
+        help="查询版本"
+    )
+
     subparsers=parser.add_subparsers(dest="command")
+
     trans_parser=subparsers.add_parser(
         "trans",
         help="转换图片格式",
@@ -62,6 +71,7 @@ def build_parser() :
         default=95,
         help="JPG / JPEG / WEBP 压缩质量，0-100（100图像质量最高），默认95"
     )
+
     zip_parser=subparsers.add_parser(
         "zip",
         help="压缩图片",
@@ -110,6 +120,60 @@ def build_parser() :
         default=3,
         help="PNG 压缩等级，0-9（0为不压缩），默认3"
     )
+
+    gifmaker=subparsers.add_parser(
+        "gifmake",
+        help="生成 GIF 动图",
+        description="GIF 动图生成器，图片名称需以 1，2，3…… 命名",
+        add_help=False
+    )
+    gifmaker.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="帮助"
+    )
+    gifmaker.add_argument(
+        "input",
+        help="输入图片文件夹"
+    )
+    gifmaker.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="GIF 输出目录，默认输入目录"
+    )
+    gifmaker.add_argument(
+        "-duration",
+        "--duration",
+        type=int,
+        default=300,
+        help="每帧时间间隔，单位毫秒，默认 300 "
+    )
+
+    gifsplier=subparsers.add_parser(
+        "gifsplit",
+        help="拆分 GIF 动图",
+        description="GIF 动图拆分器，可将动图拆分为 PNG 图片保存",
+        add_help=False
+    )
+    gifsplier.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="帮助"
+    )
+    gifsplier.add_argument(
+        "input",
+        help="输入动图文件路径"
+    )
+    gifsplier.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="图片输出目录，默认输入目录"
+    )
+
     return parser
 
 def run_trans(args) :
@@ -190,6 +254,68 @@ def run_zip(args) :
     print(f"成功，图片已输出至{result}")
     return 0
 
+def getkey(file) :
+    return int(Path(file).stem)
+
+def make_gif(args) :
+    in_path=Path(args.input)
+    out_path=Path(args.output) if args.output else in_path
+    duration=args.duration
+
+    if not in_path.is_dir() :
+        print(f"错误：输入路径不存在：{in_path}")
+        return 1
+    if not out_path.is_dir() :
+        print(f"错误：输出路径不存在：{out_path}")
+        return 1
+    if not duration>0 :
+        print("错误：每帧时间间隔必须大于0")
+        return 1
+
+    input_files=[
+        i for i in in_path.iterdir()
+        if i.is_file() and Path(i).suffix.upper()[1:] in supported_formats and Path(i).stem.isdigit()
+    ]
+
+    if not input_files :
+        print("错误：该目录中没有支持的图片文件")
+        return 1
+
+    input_files=sorted(input_files,key=getkey)
+
+    result=gifMaker(
+        input_files,
+        out_path,
+        Path(in_path).name,
+        duration
+    )
+
+    print(f"成功：图片已输出至{result}")
+    return 0
+
+def split_gif(args) :
+    in_path=Path(args.input)
+    out_path=Path(args.output) if args.output else in_path.parent
+
+    if not in_path.is_file() :
+        print(f"错误：输入文件不存在：{in_path}")
+        return 1
+    if not out_path.is_dir() :
+        print(f"错误：输出路径不存在：{out_path}")
+        return 1
+    if not in_path.suffix.upper()[1:] == "GIF" :
+        print(f"错误：输入文件格式不是 GIF")
+        return 1
+
+    result=gifSpliter(
+        in_path.parent,
+        in_path.name,
+        out_path
+    )
+
+    print(f"成功：图片已输出至{result}")
+    return 0
+
 def main() :
     parser=build_parser()
     args=parser.parse_args()
@@ -197,6 +323,10 @@ def main() :
         return run_trans(args)
     if args.command=="zip" :
         return run_zip(args)
+    if args.command=="gifmake" :
+        return make_gif(args)
+    if args.command=="gifsplit" :
+        return split_gif(args)
     parser.print_help()
     return 0
 
